@@ -1,13 +1,52 @@
-#! /usr/bin/env python3
-
 import time
 from imutils.object_detection import non_max_suppression
 import numpy as np
-import pytesseract
 import cv2
 import logging
 
+def get_roi(image,padding=30):
+    """uses openCV EAST to find bounding box of seven segment text in image"""
+    net = cv2.dnn.readNet("models/frozen_east_text_detection.pb")
+
+    (H, W) = image.shape[:2]
+    #openCV detector requires width and height to be multiples of 32
+    newH=round(H/32)*32
+    newW=round(W/32)*32
+    image = cv2.resize(image.copy(), (newW, newH))
+
+    layerNames = [
+        "feature_fusion/Conv_7/Sigmoid",
+        "feature_fusion/concat_3"]
+
+    blob = cv2.dnn.blobFromImage(image, 1.0, (newW, newH),swapRB=True, crop=False)
+
+    start = time.time()
+    net.setInput(blob)
+    (scores, geometry) = net.forward(layerNames)
+    end = time.time()
+    logging.info("text detection took {:.6f} seconds".format(end - start))
+
+    (rects, confidences) = decode_predictions(scores, geometry,min_confidence=.95)
+    boxes = non_max_suppression(np.array(rects), probs=confidences)
+    
+    #assume seven segment is largest text in video
+    box=list(max(rects,key=area))
+
+    #add some padding to roi box
+    box[0]-=3*padding
+    box[1]-=padding
+    box[2]+=padding
+    box[3]+=padding
+
+    roi=image[box[1]:box[3],box[0]:box[2]]
+    return (newW,newH,box,rects)
+
+def area(box):
+    """calculates area of box"""
+        return (box[2]-box[0])*(box[3]-box[1])
+
 def decode_predictions(scores, geometry,min_confidence=.8):
+    """given the output from the openCV EAST detector, parse it into ROIs"""
 	# grab the number of rows and columns from the scores volume, then
 	# initialize our set of bounding box rectangles and corresponding
 	# confidence scores
@@ -64,36 +103,3 @@ def decode_predictions(scores, geometry,min_confidence=.8):
 	# return a tuple of the bounding boxes and associated confidences
 	return (rects, confidences)
 
-def get_roi(image,padding=30):
-    net = cv2.dnn.readNet("models/frozen_east_text_detection.pb")
-
-    (H, W) = image.shape[:2]
-    newH=round(H/32)*32
-    newW=round(W/32)*32
-    image = cv2.resize(image.copy(), (newW, newH))
-
-    layerNames = [
-        "feature_fusion/Conv_7/Sigmoid",
-        "feature_fusion/concat_3"]
-
-    blob = cv2.dnn.blobFromImage(image, 1.0, (newW, newH),swapRB=True, crop=False)
-
-    start = time.time()
-    net.setInput(blob)
-    (scores, geometry) = net.forward(layerNames)
-    end = time.time()
-    logging.info("text detection took {:.6f} seconds".format(end - start))
-
-    (rects, confidences) = decode_predictions(scores, geometry,min_confidence=.95)
-    boxes = non_max_suppression(np.array(rects), probs=confidences)
-    def area(box):
-        return (box[2]-box[0])*(box[3]-box[1])
-    
-    box=list(max(rects,key=area))
-    box[0]-=3*padding
-    box[1]-=padding
-    box[2]+=padding
-    box[3]+=padding
-
-    roi=image[box[1]:box[3],box[0]:box[2]]
-    return (newW,newH,box,rects)
