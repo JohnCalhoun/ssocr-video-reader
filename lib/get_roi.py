@@ -4,8 +4,8 @@ import time
 from imutils.object_detection import non_max_suppression
 import numpy as np
 import pytesseract
-import argparse
 import cv2
+import logging
 
 def decode_predictions(scores, geometry,min_confidence=.8):
 	# grab the number of rows and columns from the scores volume, then
@@ -82,7 +82,7 @@ def get_roi(image,padding=30):
     net.setInput(blob)
     (scores, geometry) = net.forward(layerNames)
     end = time.time()
-    print("[INFO] text detection took {:.6f} seconds".format(end - start))
+    logging.info("text detection took {:.6f} seconds".format(end - start))
 
     (rects, confidences) = decode_predictions(scores, geometry,min_confidence=.95)
     boxes = non_max_suppression(np.array(rects), probs=confidences)
