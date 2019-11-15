@@ -2,3 +2,4 @@ __py*
 *.pyc
 data/*
 images/*
+.ipynb*

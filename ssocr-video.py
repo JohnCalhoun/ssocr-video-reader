@@ -4,6 +4,7 @@ from lib.get_roi import get_roi
 from lib.extract import extract
 from lib.process import process
 from lib.ocr import ocr
+from lib.ocr import NoTextFound
 import cv2
 import logging
 import csv
@@ -15,10 +16,10 @@ def main(video_file,output_file):
     hasFrames,Image=vidcap.read()
 
     count=0
-    with open('data.csv', mode='w') as data_file:
+    with open(output_file, mode='w') as data_file:
         data_writer = csv.writer(data_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         data_writer.writerow(["second_offset","scale_reading"])
-        last_roi=[]
+        last_roi=None
         while hasFrames:
             time=count/frameRate
             logging.info("processing frame "+str(count))
@@ -31,15 +32,18 @@ def main(video_file,output_file):
             try:
                 ocr(black_and_white_roi,count,data_writer,time)
                 last_roi=roi
-            except NameError as e_1:
+            except NoTextFound:
                 logging.debug("Could not find text, retrying using last good ROI")
                 try:
-                    extracted_roi=extract(Image,last_roi,W,H,count)
-                    black_and_white_roi=process(extracted_roi) 
+                    if last_roi:
+                        extracted_roi=extract(Image,last_roi,W,H,count)
+                        black_and_white_roi=process(extracted_roi) 
 
-                    ocr(black_and_white_roi,count,data_writer,time)
-                    last_roi=roi
-                except NameError as e_2:
+                        ocr(black_and_white_roi,count,data_writer,time)
+                        last_roi=roi
+                    else:
+                        logging.debug("No previous ROI, skipping to Next frame")
+                except NoTextFound:
                     logging.debug("Still could not find good text, returning NA")
                     data_writer.writerow([time,"NA"])
             hasFrames,Image=vidcap.read()

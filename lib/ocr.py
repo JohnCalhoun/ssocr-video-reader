@@ -3,6 +3,9 @@ import logging
 import cv2
 import re
 
+class NoTextFound(Exception):
+    pass
+
 def ocr(image,count,writer,time):
     """uses ssocr binary to extract text from saved black and white image"""
     
@@ -15,9 +18,12 @@ def ocr(image,count,writer,time):
     
     result=str(result.stdout)
     logging.debug("ssocr output: %s"%(result))
-    
-    value=re.compile("(\d+\.\d\d)").findall(result)[0]
-    logging.debug("ssocr output parsed as: %s"%(value))
+   
+    try:
+        value=re.compile("(\d+\.\d\d)").findall(result)[0]
+        logging.debug("ssocr output parsed as: %s"%(value))
+    except IndexError:
+        raise NoTextFound
     
     writer.writerow([time,value])
 
