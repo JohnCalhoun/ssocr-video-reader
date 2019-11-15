@@ -1,9 +1,17 @@
 import subprocess
 import logging
+import cv2
+import re
 
-def ocr(count,writer,time):
+def ocr(image,count,writer,time):
     """uses ssocr binary to extract text from saved black and white image"""
-    result = subprocess.run('ssocr -d -1 -c decimal -r 3 images/roi/%s.png'%(count), shell=True,stdout=subprocess.PIPE)
+    
+    cv2.imwrite("./data/images/roi/"+str(count)+".png",image)
+    
+    result = subprocess.run(
+            'ssocr -d -1 -c decimal -r 3 data/images/roi/%s.png'%(count), 
+            shell=True,
+            stdout=subprocess.PIPE)
     
     result=str(result.stdout)
     logging.debug("ssocr output: %s"%(result))

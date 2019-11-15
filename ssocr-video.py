@@ -22,17 +22,22 @@ def main(video_file,output_file):
         while hasFrames:
             time=count/frameRate
             logging.info("processing frame "+str(count))
+            cv2.imwrite("./data/images/raw/"+str(count)+".png",Image)  
+            
             (W,H,roi,boxes)=get_roi(Image,padding=40)
-            out=extract(Image,roi,W,H,count)
-           
+            extracted_roi=extract(Image,roi,W,H,count)
+            black_and_white_roi=process(extracted_roi) 
+
             try:
-                ocr(count,data_writer,time)
+                ocr(black_and_white_roi,count,data_writer,time)
                 last_roi=roi
             except NameError as e_1:
                 logging.debug("Could not find text, retrying using last good ROI")
                 try:
-                    out=extract(Image,last_roi,W,H,count)
-                    ocr(count,data_writer,time)
+                    extracted_roi=extract(Image,last_roi,W,H,count)
+                    black_and_white_roi=process(extracted_roi) 
+
+                    ocr(black_and_white_roi,count,data_writer,time)
                     last_roi=roi
                 except NameError as e_2:
                     logging.debug("Still could not find good text, returning NA")
@@ -43,7 +48,11 @@ def main(video_file,output_file):
 if __name__== "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser("ssocr-video.py",description="Parses the seven segment display data from a video")
+    parser = argparse.ArgumentParser(
+            "ssocr-video.py",
+            description="Parses the seven segment display data from a video",
+            epilog="USAGE: ssocr-video ./data/video.mp4 ./data/output.csv")
+
     parser.add_argument("video", help="the location of the video", type=str)
     parser.add_argument("output", help="location to write output csv", type=str)
     parser.add_argument("--log", help="logging level", type=str,default="debug")
