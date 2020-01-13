@@ -2,7 +2,7 @@
 This project is a demo of how to read seven segment digits from a LCD screen in a video into a csv file!
 
 ## How it works
-there are four steps in the processing pipeline. Four each frame in the video
+there are three steps in the processing pipeline. Four each frame in the video
 
 1. Find and isolate the region containing the LCD screen ie. Text detection. Currently this uses the openCV EAST implementation. This takes up the majority of the runtime. see lib/get_roi.py and lib/extract for details. 
 2. Convert the region of interest to a black and white image with white background and the LCD text has black. Basically; some simple thresholding. sett lib/process.py for details
@@ -22,7 +22,7 @@ pip3 install -r requirements.txt
 ```
 
 ## Usage
-the main script is ssocr-video.py and is usage is:
+the main script is ssocr-video.py and its usage is:
 ```
 usage: ssocr-video.py [-h] [--log LOG] video output
 
